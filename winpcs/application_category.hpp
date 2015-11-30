@@ -26,54 +26,21 @@
 */
 
 /*
-	config.hpp for define of macro, type and namespace.
+	application_category.hpp for error report.
 */
 
 #pragma once
+#include "config.hpp"
+#include <boost/system/error_code.hpp>
 
-// for shared ptr
-#define BOOST_APPLICATION_FEATURE_NS_SELECT_BOOST
+class application_category :
+	public boost::system::error_category
+{
+public:
+	application_category(std::string message) : message_(message) {};
+	const char *name() const { return "application"; }
+	std::string message(int ev) const { return message_; }
 
-
-#include <boost/smart_ptr.hpp>
-#include <boost/noncopyable.hpp>
-#include <boost/application.hpp>
-
-#ifdef BOOST_APPLICATION_FEATURE_NS_SELECT_BOOST
-namespace ns = boost;
-#else
-namespace ns = std;
-#endif
-
-#include <boost/program_options.hpp>
-namespace po = boost::program_options;
-
-namespace boost { namespace program_options {
-	template<class charT>
-	basic_parsed_options<charT>
-		parse_command_line_allow_unregistered(int argc, const charT* const argv[],
-			const options_description& desc,
-			int style = 0,
-			function1<std::pair<std::string, std::string>,
-			const std::string&> ext
-			= ext_parser())
-	{
-		return basic_command_line_parser<charT>(argc, argv).options(desc).allow_unregistered().
-			style(style).extra_parser(ext).run();
-	}
-
-}}
-
-#include "application_category.hpp"
-
-#include "logger.hpp"
-
-#include <boost/thread.hpp>
-
-typedef boost::try_mutex MUTEX;
-typedef MUTEX::scoped_lock LOCK;
-typedef MUTEX::scoped_try_lock TRY_LOCK;
-
-typedef boost::recursive_try_mutex RECURSIVE_MUTEX;
-typedef RECURSIVE_MUTEX::scoped_lock RECURSIVE_LOCK;
-typedef RECURSIVE_MUTEX::scoped_try_lock RECURSIVE_TRY_LOCK;
+private:
+	std::string message_;
+};

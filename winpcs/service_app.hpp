@@ -31,7 +31,8 @@
 
 #pragma once
 #include "config.hpp"
-#include "service_setup.hpp"
+#include "timer.hpp"
+#include "parse_config.hpp"
 
 #include <boost/application/auto_handler.hpp>
 #include <boost/filesystem.hpp>
@@ -48,7 +49,6 @@ public:
 
 		context_.insert<application::termination_handler>(
 			application::csbl::make_shared<application::termination_handler_default_behaviour>(termination_callback));
-
 	}
 
 	int operator()()
@@ -57,6 +57,7 @@ public:
 
 		ns::shared_ptr<application::args> cmd_args
 			= context_.find<application::args>();
+
 
 		// define our simple installation schema options
 		po::options_description install("service options");
@@ -67,13 +68,35 @@ public:
 		po::store(po::parse_command_line_allow_unregistered(cmd_args->argc(), cmd_args->argv(), install), vm);
 		boost::system::error_code ec;
 
+		ns::shared_ptr<application::path> application_path
+			= context_.find<application::path>();
+
+		boost::filesystem::current_path(application_path->executable_path());
 		boost::filesystem::path config_file(vm["config"].as<std::string>());
+		if (config_file.is_relative()) 
+		{
+			config_file = boost::filesystem::current_path();
+			config_file += filesystem::path::preferred_separator;
+			config_file += vm["config"].as<std::string>();
+		}
+
 		WRITE_LOG(trace) << "config file:" << config_file;
 
+		config_.reset(new parse_config(context_, config_file, ec));
+
+		if (ec)
+		{
+			WRITE_LOG(trace) << "config file load failed!";
+			return 1;
+		}
+
+		timer_.start();
 
 		WRITE_LOG(trace) << "server wait for termination request..";
 
 		context_.find<application::wait_for_termination_request>()->wait();
+
+		timer_.stop();
 
 		WRITE_LOG(trace) << "server exiting..";
 
@@ -82,6 +105,8 @@ public:
 
 	bool stop()
 	{
+		timer_.stop();
+
 		WRITE_LOG(trace) << "server stopping";
 		return true;
 	}
@@ -99,6 +124,8 @@ public:
 	}
 
 private:
-	application::context& context_;
+	application::context          &context_;
+	timer_generator                timer_;
+	ns::shared_ptr<parse_config>   config_;
 
 };

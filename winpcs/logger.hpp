@@ -31,10 +31,10 @@
 
 #pragma once  
 
+#include "config.hpp"
 #include <cassert>  
 #include <iostream>  
 #include <fstream>  
-#include <boost/noncopyable.hpp>
 #include <boost/locale/generator.hpp>  
 #include <boost/date_time/posix_time/posix_time_types.hpp>  
 

@@ -56,8 +56,15 @@ int main(int argc, char *argv[])
 
 		desc.add_options()
 			(",b", "run on backend service")
+			(",d", "run for debug")
 			;
 		po::store(po::parse_command_line_allow_unregistered(argc, argv, desc), vm);
+
+		if (vm.count("-d"))
+		{
+			service_app app(app_context);
+			return application::launch<application::common>(app, app_context);
+		}
 
 		if (vm.count("-b"))
 		{

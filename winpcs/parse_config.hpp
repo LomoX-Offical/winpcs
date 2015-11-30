@@ -26,54 +26,45 @@
 */
 
 /*
-	config.hpp for define of macro, type and namespace.
+	parse_config.hpp for parsing the config file.
 */
 
 #pragma once
 
-// for shared ptr
-#define BOOST_APPLICATION_FEATURE_NS_SELECT_BOOST
+#include "config.hpp"
 
+extern "C" {
+#include "libjsonnet/libjsonnet.h"
+}
 
-#include <boost/smart_ptr.hpp>
-#include <boost/noncopyable.hpp>
-#include <boost/application.hpp>
+#pragma comment(lib, "libjsonnet.lib")
 
-#ifdef BOOST_APPLICATION_FEATURE_NS_SELECT_BOOST
-namespace ns = boost;
-#else
-namespace ns = std;
-#endif
-
-#include <boost/program_options.hpp>
-namespace po = boost::program_options;
-
-namespace boost { namespace program_options {
-	template<class charT>
-	basic_parsed_options<charT>
-		parse_command_line_allow_unregistered(int argc, const charT* const argv[],
-			const options_description& desc,
-			int style = 0,
-			function1<std::pair<std::string, std::string>,
-			const std::string&> ext
-			= ext_parser())
+class parse_config : noncopyable
+{
+public:
+	parse_config(application::context &context, boost::filesystem::path file, boost::system::error_code &ec)
+		: context_(context)
 	{
-		return basic_command_line_parser<charT>(argc, argv).options(desc).allow_unregistered().
-			style(style).extra_parser(ext).run();
+		JsonnetVm *vm = jsonnet_make();
+		int error;
+		char *output;
+
+		output = jsonnet_evaluate_file(vm, file.string().c_str(), &error);
+
+		if (error != 0) {
+			ec = boost::system::error_code(error,
+				application_category(std::string(output));
+		}
+
+		jsonnet_realloc(vm, output, 0);
+		jsonnet_destroy(vm);
 	}
 
-}}
+	~parse_config()
+	{
 
-#include "application_category.hpp"
+	}
 
-#include "logger.hpp"
-
-#include <boost/thread.hpp>
-
-typedef boost::try_mutex MUTEX;
-typedef MUTEX::scoped_lock LOCK;
-typedef MUTEX::scoped_try_lock TRY_LOCK;
-
-typedef boost::recursive_try_mutex RECURSIVE_MUTEX;
-typedef RECURSIVE_MUTEX::scoped_lock RECURSIVE_LOCK;
-typedef RECURSIVE_MUTEX::scoped_try_lock RECURSIVE_TRY_LOCK;
+	application::context    &context_;
+	boost::filesystem::path config_filename_;
+};

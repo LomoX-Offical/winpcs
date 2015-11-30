@@ -35,5 +35,14 @@
     <ClInclude Include="setup_app.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="timer.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="parse_config.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="application_category.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
