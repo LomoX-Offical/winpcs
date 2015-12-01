@@ -39,25 +39,33 @@ extern "C" {
 
 #pragma comment(lib, "libjsonnet.lib")
 
+
+struct process
+{
+	bool autostart;
+	std::string command;
+	std::string directory;
+	std::string environment;
+	std::vector<unsigned int> exitcodes;
+	std::string name;
+	unsigned int numprocs;
+	unsigned int numprocs_start;
+	std::string user;
+
+};
+
 class parse_config : noncopyable
 {
 public:
 	parse_config(application::context &context, boost::filesystem::path file, boost::system::error_code &ec)
 		: context_(context)
 	{
-		JsonnetVm *vm = jsonnet_make();
-		int error;
-		char *output;
-
-		output = jsonnet_evaluate_file(vm, file.string().c_str(), &error);
-
-		if (error != 0) {
-			ec = boost::system::error_code(error,
-				application_category(std::string(output));
+		std::string json_str(_parse_jsonnet(file, ec));
+		if (ec)
+		{
+			return;
 		}
 
-		jsonnet_realloc(vm, output, 0);
-		jsonnet_destroy(vm);
 	}
 
 	~parse_config()
@@ -65,6 +73,26 @@ public:
 
 	}
 
+private:
+
+	std::string _parse_jsonnet(boost::filesystem::path& file, boost::system::error_code &ec)
+	{
+		int error;
+		std::string ret;
+
+		boost::shared_ptr<JsonnetVm> vm(jsonnet_make(), boost::bind(jsonnet_destroy, _1));
+		boost::shared_array<char> output(
+			jsonnet_evaluate_file(vm.get(), file.string().c_str(), &error), boost::bind(jsonnet_realloc, vm.get(), _1, 0));
+
+		if (error != 0) {
+			ec = boost::system::error_code(error,
+				application_category(std::string(output.get())));
+			return ret;
+		}
+
+		ret = output.get();
+		return ret;
+	}
 	application::context    &context_;
 	boost::filesystem::path config_filename_;
 };

@@ -38,7 +38,7 @@ class application_category :
 {
 public:
 	application_category(std::string message) : message_(message) {};
-	const char *name() const { return "application"; }
+	const char *name() const BOOST_SYSTEM_NOEXCEPT { return "application"; }
 	std::string message(int ev) const { return message_; }
 
 private:
