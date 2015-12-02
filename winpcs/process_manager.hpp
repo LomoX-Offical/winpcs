@@ -33,6 +33,9 @@
 #include "config.hpp"
 
 #include <Windows.h>
+#include <VersionHelpers.h>
+#include <tlhelp32.h>
+#include <Psapi.h>
 
 #include "timer.hpp"
 #include "parse_config.hpp"
@@ -53,7 +56,7 @@ struct exec_runner : noncopyable
 
 	bool start()
 	{
-		this->timer_handler_ = this->timer_.set_timer(boost::bind(exec_runner::timer_delay, this), this->info_.autostart_delay_second);
+		this->timer_handler_ = this->timer_.set_timer(boost::bind(&exec_runner::timer_delay, this), this->info_.autostart_delay_second);
 		return true;
 	}
 
@@ -72,7 +75,7 @@ struct exec_runner : noncopyable
 
 		WRITE_LOG(trace) << "[timer_delay][begin]" << this->info_.name;
 
-		this->timer_.kill_timer();
+		this->timer_.kill_timer(this->timer_handler_);
 		this->timer_handler_ = this->timer_.set_timer(boost::bind(exec_runner::timer_run_exe, this), this->info_.autostart_delay_second, true);
 	}
 
@@ -82,12 +85,12 @@ struct exec_runner : noncopyable
 
 		WRITE_LOG(trace) << "[timer_run_exe][begin]" << this->info_.name;
 
-		if (this->_check_process_running())
+		if (this->_check_stop_flag() == true)
 		{
 			return;
 		}
 
-		if (this->_check_stop_flag() == true)
+		if (this->_check_process_running())
 		{
 			return;
 		}
@@ -123,33 +126,14 @@ private:
 
 			this->_kill_process();
 		}
-		else if (strcmp(this->.info_.stopsignal.c_str(), "%kill_tree%") == 0)
+		else if (strcmp(this->info_.stopsignal.c_str(), "%kill_tree%") == 0)
 		{
 			if (this->_check_process_running() == false)
 			{
-				logger_->write_error_log(FILE_LINE_FORMAT("kill tree [%s], has already been closed."), this->exe_name_.c_str());
 				return;
 			}
 
 			this->_kill_processes();
-		}
-		else
-		{
-			this->_create_process(false, true);
-			if (this->_check_process_running() == false)
-			{
-				logger_->write_error_log(FILE_LINE_FORMAT("kill process [%s], close routine has closed it."), this->exe_name_.c_str());
-				return;
-			}
-
-			if (_tcscmp(this->stop_fail_.c_str(), _T("%kill%")) == 0)
-			{
-				this->_kill_process();
-			}
-			else if (_tcscmp(this->stop_fail_.c_str(), _T("%kill_tree%")) == 0)
-			{
-				this->_kill_processes();
-			}
 		}
 	}
 
@@ -200,7 +184,7 @@ private:
 	{
 		auto ret = false;
 
-		SCOPE_EXIT(WRITE_LOG(trace) << "_check_process_running[" << this->info_.name << "]" << ret; );
+		SCOPE_EXIT(WRITE_LOG(trace) << "check process running [" << this->info_.name << "]" << ret; );
 
 		if (this->process_handle_ == 0)
 		{
@@ -268,16 +252,6 @@ private:
 		CloseHandle(process_handle);
 	}
 
-	void _kill_last_processes()
-	{
-		std::vector<DWORD> pids = this->_find_last_process();
-		for (std::vector<DWORD>::iterator iter = pids.begin(); iter != pids.end(); ++iter)
-		{
-			this->_terminate_process(*iter, 0);
-		}
-		WRITE_LOG(trace) << "kill last processes >> " << this->info_.name << "] finished.";
-	}
-
 	std::vector<DWORD> _find_last_process()
 	{
 		WRITE_LOG(trace) << "find last processes begin >> " << this->info_.name;
@@ -288,7 +262,7 @@ private:
 		HANDLE process_snap = ::CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 		if (process_snap == INVALID_HANDLE_VALUE)
 		{
-			logger_->write_error_log(FILE_LINE_FORMAT("CreateToolhelp32Snapshot failed!error:[%d][%d]"), (DWORD)process_snap, GetLastError());
+			WRITE_LOG(error) << "CreateToolhelp32Snapshot failed!error >> [" << GetLastError() << "], process: >>" << this->info_.name;
 			return pids;
 		}
 
@@ -299,7 +273,7 @@ private:
 
 		if (success == FALSE)
 		{
-			logger_->write_error_log(FILE_LINE_FORMAT("Process32First failed!error:[%d][%d]"), (DWORD)process_snap, GetLastError());
+			WRITE_LOG(error) << "Process32First failed!error >> [" << GetLastError() << "], process: >>" << this->info_.name;
 			return pids;
 		}
 
@@ -325,18 +299,18 @@ private:
 					continue;
 				}
 
-				DWORD ret = GetProcessImageFileName(hProcess, szName, nSize);
+				DWORD ret = ::GetProcessImageFileName(hProcess, szName, nSize);
 				CloseHandle(hProcess);
 				if (ret == FALSE)
 				{
 					continue;
 				}
 
-				tstring strName = DosDevicePath2LogicalPath(szName);
+				std::string strName = DosDevicePath2LogicalPath(szName);
 
 				try
 				{
-					if (equivalent(path(this->exe_name_.c_str()), path(strName.c_str())) == false)
+					if (equivalent(path(this->info_.process_name.c_str()), path(strName.c_str())) == false)
 					{
 						break;
 					}
