@@ -64,6 +64,7 @@ namespace boost { namespace program_options {
 
 }}
 
+#include <boost/system/error_code.hpp>
 #include "application_category.hpp"
 
 #include "logger.hpp"
@@ -77,3 +78,22 @@ typedef MUTEX::scoped_try_lock TRY_LOCK;
 typedef boost::recursive_try_mutex RECURSIVE_MUTEX;
 typedef RECURSIVE_MUTEX::scoped_lock RECURSIVE_LOCK;
 typedef RECURSIVE_MUTEX::scoped_try_lock RECURSIVE_TRY_LOCK;
+
+#include <functional>
+
+template <typename F>
+struct ScopeExit {
+	ScopeExit(F f) : f(f) {}
+	~ScopeExit() { f(); }
+	F f;
+};
+
+template <typename F>
+ScopeExit<F> MakeScopeExit(F f) {
+	return ScopeExit<F>(f);
+};
+
+#define STRING_JOIN2(arg1, arg2) DO_STRING_JOIN2(arg1, arg2)
+#define DO_STRING_JOIN2(arg1, arg2) arg1 ## arg2
+#define SCOPE_EXIT(code) \
+    auto STRING_JOIN2(scope_exit_, __LINE__) = MakeScopeExit([=](){code;})

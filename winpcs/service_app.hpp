@@ -31,11 +31,14 @@
 
 #pragma once
 #include "config.hpp"
-#include "timer.hpp"
-#include "parse_config.hpp"
 
 #include <boost/application/auto_handler.hpp>
 #include <boost/filesystem.hpp>
+
+#include "timer.hpp"
+#include "process_manager.hpp"
+#include "parse_config.hpp"
+
 
 class service_app
 {
@@ -83,7 +86,6 @@ public:
 		WRITE_LOG(trace) << "config file:" << config_file;
 
 		config_.reset(new parse_config(context_, config_file, ec));
-
 		if (ec)
 		{
 			WRITE_LOG(trace) << "config file load failed!";
@@ -91,6 +93,9 @@ public:
 		}
 
 		timer_.start();
+
+		psmgr_.start(config_->get_processes(), timer_);
+
 
 		WRITE_LOG(trace) << "server wait for termination request..";
 
@@ -127,5 +132,6 @@ private:
 	application::context          &context_;
 	timer_generator                timer_;
 	ns::shared_ptr<parse_config>   config_;
+	process_manager                psmgr_;
 
 };

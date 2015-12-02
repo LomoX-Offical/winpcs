@@ -158,7 +158,7 @@ public:
 
 	//  interface function
 	template <typename Func>
-	unsigned long set_timer(long seconds, bool do_once_immediately, Func func) 
+	unsigned long set_timer(Func func, long seconds, bool do_once_immediately = false)
 	{
 		if (stopped_ == 1)
 		{
@@ -203,7 +203,6 @@ public:
 	{
 		asio_service_.run();
 	}
-
 
 private:
 	MUTEX mutex_;

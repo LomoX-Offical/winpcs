@@ -44,5 +44,8 @@
     <ClInclude Include="application_category.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="process_manager.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

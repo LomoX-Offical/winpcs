@@ -162,6 +162,7 @@
     <ClInclude Include="config.hpp" />
     <ClInclude Include="logger.hpp" />
     <ClInclude Include="parse_config.hpp" />
+    <ClInclude Include="process_manager.hpp" />
     <ClInclude Include="service_app.hpp" />
     <ClInclude Include="service_setup.hpp" />
     <ClInclude Include="setup_app.hpp" />
