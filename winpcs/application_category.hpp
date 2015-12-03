@@ -37,10 +37,20 @@ class application_category :
 	public boost::system::error_category
 {
 public:
-	application_category(std::string message) : message_(message) {};
+	application_category(std::string& message) : message_(message) {};
 	const char *name() const BOOST_SYSTEM_NOEXCEPT { return "application"; }
-	std::string message(int ev) const { return message_; }
+	std::string message(int ev) const { 
+		return message_; 
+	}
 
 private:
 	std::string message_;
 };
+
+
+inline const application_category & make_app_cat(std::string& message) noexcept
+{
+	static const application_category  application_category_const(message);
+	return application_category_const;
+}
+

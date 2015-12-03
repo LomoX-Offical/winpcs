@@ -138,7 +138,7 @@ private:
 
 		if (error != 0) {
 			ec = boost::system::error_code(error,
-				application_category(std::string(output.get())));
+				make_app_cat(std::string(output.get())));
 			return std::string();
 		}
 

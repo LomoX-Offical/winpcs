@@ -48,7 +48,8 @@ typedef boost::posix_time::time_duration time_duration_t;
 class timer_item : public boost::enable_shared_from_this<timer_item>
 {
 public:
-	timer_item(functor_type func, boost::asio::io_service& asio_service,
+	template <typename Func>
+	timer_item(Func func, boost::asio::io_service& asio_service,
 		time_duration_t& interval, bool do_once_immediately) :
 		func_(func), interval_(interval), asio_service_(asio_service),
 		do_once_immediately_(do_once_immediately)
@@ -167,10 +168,10 @@ public:
 
 		LOCK lock(mutex_);
 
-		boost::shared_ptr<timer_item> timer_item_ptr = boost::make_shared<timer_item>(func, boost::ref(this->asio_service_),
-			boost::ref(second_t(second)), do_once_immediately);
-		std::pair<timers_container::iterator, bool> result =
-			timers_.insert(std::make_pair(max_timer_id_++, timer_item_ptr));
+		auto timer_item_ptr = boost::make_shared<timer_item>(func, boost::ref(this->asio_service_),
+			second_t(seconds), do_once_immediately);
+
+		auto result = timers_.insert(std::make_pair(max_timer_id_++, timer_item_ptr));
 
 		timer_item_ptr->start();
 		if (result.second == true)

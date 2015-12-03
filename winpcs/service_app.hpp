@@ -88,13 +88,13 @@ public:
 		config_.reset(new parse_config(context_, config_file, ec));
 		if (ec)
 		{
-			WRITE_LOG(trace) << "config file load failed!";
+			WRITE_LOG(error) << "config file load failed! >> " << ec.message();
 			return 1;
 		}
 
 		timer_.start();
 
-		psmgr_.start(config_->get_processes(), timer_);
+		psmgr_.start(config_->get_processes(), timer_, ec);
 
 
 		WRITE_LOG(trace) << "server wait for termination request..";

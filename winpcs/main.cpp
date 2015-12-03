@@ -44,7 +44,7 @@ int main(int argc, char *argv[])
 			ns::make_shared<application::args>(argc, argv));
 
 		app_context.insert<application::path>(
-			boost::make_shared<application::path>());
+			ns::make_shared<application::path>());
 
 
 		ns::shared_ptr<application::path> path = app_context.find<application::path>();
