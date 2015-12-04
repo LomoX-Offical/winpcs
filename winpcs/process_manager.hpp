@@ -78,7 +78,7 @@ struct exec_runner : noncopyable
 		WRITE_LOG(trace) << "[timer_delay][begin]" << this->info_.name;
 
 		this->timer_.kill_timer(this->timer_handler_);
-		this->timer_handler_ = this->timer_.set_timer(boost::bind(&exec_runner::timer_run_exe, this), this->info_.autostart_delay_second, true);
+		this->timer_handler_ = this->timer_.set_timer(boost::bind(&exec_runner::timer_run_exe, this), this->info_.startsecs, true);
 	}
 
 	void timer_run_exe()
@@ -207,7 +207,7 @@ private:
 	{
 		auto ret = false;
 
-		SCOPE_EXIT(WRITE_LOG(trace) << "check process running [" << this->info_.name << "]" << ret; );
+		SCOPE_EXIT(WRITE_LOG(trace) << "check process running >> " << this->info_.name << " | running >> " << ret; );
 
 		if (this->process_handle_ == 0)
 		{

@@ -76,6 +76,7 @@ struct process_config
 	std::string name;
 	unsigned int numprocs;
 	unsigned int numprocs_start;
+	unsigned int startsecs;
 	
 	std::string user;
 
@@ -84,6 +85,7 @@ struct process_config
 	{
 		ar(CEREAL_NVP(name), CEREAL_NVP(command));
 
+		CEREAL_AR_NVP_DEFAULT(ar, startsecs, 10);
 		CEREAL_AR_NVP_DEFAULT(ar, autostart, false);
 		CEREAL_AR_NVP_DEFAULT(ar, process_name, "");
 		CEREAL_AR_NVP_DEFAULT(ar, stopsignal, "%kill_tree%");

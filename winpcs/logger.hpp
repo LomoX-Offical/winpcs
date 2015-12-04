@@ -35,7 +35,6 @@
 #include <cassert>  
 #include <iostream>  
 #include <fstream>  
-#include <boost/locale/generator.hpp>  
 #include <boost/date_time/posix_time/posix_time_types.hpp>  
 
 #include <boost/log/common.hpp>
@@ -49,6 +48,7 @@
 #include <boost/filesystem.hpp>   
 #include <boost/log/detail/thread_id.hpp>   
 #include <boost/log/sources/global_logger_storage.hpp>  
+#include <boost/log/sinks/debug_output_backend.hpp>
 
 namespace logging = boost::log;
 namespace sinks = boost::log::sinks;
@@ -115,25 +115,36 @@ public:
 
 	logger& init()
 	{
-		std::locale::global(std::locale("chs"));
+		typedef sinks::debug_output_backend backend_t;
+		auto pDebugBackend = boost::make_shared< backend_t >();
 
-		auto pSink = logging::add_file_log
-			(
-				keywords::open_mode = std::ios::app, // append write
-				keywords::file_name = file_name_ + "%Y-%m-%d.log",
-				keywords::rotation_size = rotation_size_,
-				keywords::time_based_rotation = sinks::file::rotation_at_time_point(0, 0, 0),
-				keywords::min_free_space = min_free_space_,
+		auto pDebugSink = boost::make_shared< sinks::synchronous_sink< backend_t > >(pDebugBackend);
+		pDebugSink->set_filter(expr::attr<severity_level>("Severity") >= trace);
+		pDebugSink->set_formatter(
+			expr::stream
+			<< "[" << expr::attr<UINT>("RecordID")
+			<< "][" << expr::format_date_time(_timestamp, "%Y-%m-%d %H:%M:%S.%f")
+			<< "][" << _severity
+			<< "]" << expr::message
+			<< std::endl);
+		logging::core::get()->add_sink(pDebugSink);
 
-				keywords::format = (
-					expr::stream
-					<< "[" << expr::attr<UINT>("RecordID")
-					<< "][" << expr::format_date_time(_timestamp, "%Y-%m-%d %H:%M:%S.%f")
-					<< "][" << _severity
-					<< "]" << expr::message)
-				);
+		sink_ = logging::add_file_log (
+			keywords::open_mode = std::ios::app, // append write
+			keywords::file_name = file_name_ + "%Y-%m-%d.log",
+			keywords::rotation_size = rotation_size_,
+			keywords::time_based_rotation = sinks::file::rotation_at_time_point(0, 0, 0),
+			keywords::min_free_space = min_free_space_,
 
-		pSink->locked_backend()->auto_flush(auto_flush_);
+			keywords::format = (
+				expr::stream
+				<< "[" << expr::attr<UINT>("RecordID")
+				<< "][" << expr::format_date_time(_timestamp, "%Y-%m-%d %H:%M:%S.%f")
+				<< "][" << _severity
+				<< "]" << expr::message)
+		);
+
+		sink_->locked_backend()->auto_flush(auto_flush_);
 
 		logging::add_common_attributes();
 
@@ -180,7 +191,7 @@ public:
 	template <int level>
 	void set_filter() 
 	{
-		logging::core::get()->set_filter(expr::attr<severity_level>("Severity") >= level);
+		sink_->set_filter(expr::attr<severity_level>("Severity") >= level);
 	}
 
 
@@ -207,6 +218,7 @@ protected:
 	size_t rotation_size_;
 	std::string file_name_;
 	bool auto_flush_;
+	boost::shared_ptr< sinks::synchronous_sink< sinks::text_file_backend > > sink_;
 };
 
 #define WRITE_LOG(level) BOOST_LOG_SEV(logger::log_filter(), level)
