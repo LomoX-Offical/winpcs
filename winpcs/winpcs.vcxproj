@@ -160,6 +160,7 @@
   <ItemGroup>
     <ClInclude Include="application_category.hpp" />
     <ClInclude Include="config.hpp" />
+    <ClInclude Include="http_server.hpp" />
     <ClInclude Include="logger.hpp" />
     <ClInclude Include="parse_config.hpp" />
     <ClInclude Include="process_manager.hpp" />

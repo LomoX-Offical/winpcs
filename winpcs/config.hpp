@@ -65,11 +65,10 @@ namespace boost { namespace program_options {
 }}
 
 #include <boost/system/error_code.hpp>
+#include <boost/thread.hpp>
 #include "application_category.hpp"
 
 #include "logger.hpp"
-
-#include <boost/thread.hpp>
 
 typedef boost::try_mutex MUTEX;
 typedef MUTEX::scoped_lock LOCK;

@@ -49,6 +49,11 @@ struct exec_runner : noncopyable
 
 	}
 
+	exec_runner::~exec_runner(void)
+	{
+		this->stop();
+	}
+
 	bool init()
 	{
 		this->_kill_last_processes();
@@ -64,11 +69,8 @@ struct exec_runner : noncopyable
 
 	void stop()
 	{
-		if (this->timer_handler_ != 0)
-		{
-			this->timer_.kill_timer(this->timer_handler_);
-			this->timer_handler_ = 0;
-		}
+		this->_kill_timer();
+		this->_stop_process();
 	}
 
 	void timer_delay()
@@ -103,6 +105,15 @@ struct exec_runner : noncopyable
 	}
 
 private:
+
+	void _kill_timer()
+	{
+		if (this->timer_handler_ != 0)
+		{
+			this->timer_.kill_timer(this->timer_handler_);
+			this->timer_handler_ = 0;
+		}
+	}
 
 	bool _check_stop_flag()
 	{
@@ -506,6 +517,16 @@ public:
 			}
 		);
 	}
+
+	void stop()
+	{
+		std::for_each(this->runners_.begin(), this->runners_.end(), 
+			[&](boost::shared_ptr<exec_runner>& runner) {
+				runner->stop();
+			}
+		);
+	}
+
 
 	std::vector<boost::shared_ptr<exec_runner> > runners_;
 };

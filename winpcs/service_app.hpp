@@ -38,6 +38,7 @@
 #include "timer.hpp"
 #include "process_manager.hpp"
 #include "parse_config.hpp"
+#include "http_server.hpp"
 
 
 class service_app
@@ -92,14 +93,19 @@ public:
 			return 1;
 		}
 
+
 		timer_.start();
 
 		psmgr_.start(config_->get_processes(), timer_, ec);
+
+		http_.start(ec);
 
 
 		WRITE_LOG(trace) << "server wait for termination request..";
 
 		context_.find<application::wait_for_termination_request>()->wait();
+
+		psmgr_.stop();
 
 		timer_.stop();
 
@@ -133,5 +139,5 @@ private:
 	timer_generator                timer_;
 	ns::shared_ptr<parse_config>   config_;
 	process_manager                psmgr_;
-
+	http_server                    http_;
 };

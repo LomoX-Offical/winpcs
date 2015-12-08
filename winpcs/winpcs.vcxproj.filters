@@ -47,5 +47,8 @@
     <ClInclude Include="process_manager.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="http_server.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
