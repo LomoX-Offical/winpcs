@@ -52,7 +52,7 @@ public:
 		{
 			if (pid == 0) 
 			{
-				pm.
+				pm.runners_
 			}
 			res.end("{\"result\":0}");
 			return;
