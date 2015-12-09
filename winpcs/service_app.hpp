@@ -38,29 +38,28 @@
 #include "timer.hpp"
 #include "process_manager.hpp"
 #include "parse_config.hpp"
-#include "http_server.hpp"
 
 
 class service_app
 {
 public:
 
-	service_app(application::context& context)
+	service_app(boost::application::context& context)
 		: context_(context)
 	{
-		application::handler<>::callback termination_callback
+        boost::application::handler<>::callback termination_callback
 			= boost::bind(&service_app::stop, this);
 
-		context_.insert<application::termination_handler>(
-			application::csbl::make_shared<application::termination_handler_default_behaviour>(termination_callback));
+		context_.insert<boost::application::termination_handler>(
+            boost::application::csbl::make_shared<boost::application::termination_handler_default_behaviour>(termination_callback));
 	}
 
 	int operator()()
 	{
 		WRITE_LOG(trace) << "server running";
 
-		ns::shared_ptr<application::args> cmd_args
-			= context_.find<application::args>();
+		ns::shared_ptr<boost::application::args> cmd_args
+			= context_.find<boost::application::args>();
 
 
 		// define our simple installation schema options
@@ -72,15 +71,15 @@ public:
 		po::store(po::parse_command_line_allow_unregistered(cmd_args->argc(), cmd_args->argv(), install), vm);
 		boost::system::error_code ec;
 
-		ns::shared_ptr<application::path> application_path
-			= context_.find<application::path>();
+		ns::shared_ptr<boost::application::path> application_path
+			= context_.find<boost::application::path>();
 
 		boost::filesystem::current_path(application_path->executable_path());
 		boost::filesystem::path config_file(vm["config"].as<std::string>());
 		if (config_file.is_relative()) 
 		{
 			config_file = boost::filesystem::current_path();
-			config_file += filesystem::path::preferred_separator;
+			config_file += boost::filesystem::path::preferred_separator;
 			config_file += vm["config"].as<std::string>();
 		}
 
@@ -98,12 +97,14 @@ public:
 
 		psmgr_.start(config_->get_processes(), timer_, ec);
 
-		http_.start(ec);
+//         http_.start(ec);
 
 
 		WRITE_LOG(trace) << "server wait for termination request..";
 
-		context_.find<application::wait_for_termination_request>()->wait();
+		context_.find<boost::application::wait_for_termination_request>()->wait();
+
+//         http_.stop();
 
 		psmgr_.stop();
 
@@ -135,9 +136,11 @@ public:
 	}
 
 private:
-	application::context          &context_;
-	timer_generator                timer_;
-	ns::shared_ptr<parse_config>   config_;
-	process_manager                psmgr_;
-	http_server                    http_;
+
+    boost::application::context                  &context_;
+	timer_generator                        timer_;
+	ns::shared_ptr<parse_config>           config_;
+	process_manager                        psmgr_;
+//     http_server                            http_;
+	boost::shared_ptr<boost::thread>       http_thread_;
 };

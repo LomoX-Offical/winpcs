@@ -40,7 +40,7 @@
 #include "timer.hpp"
 #include "parse_config.hpp"
 
-struct exec_runner : noncopyable
+struct exec_runner : boost::noncopyable
 {
 	exec_runner(process_config& info, timer_generator& timer) :
 		info_(info), timer_(timer), stop_flag_(false),
@@ -498,7 +498,7 @@ private:
 	std::vector<std::string> exclude_names_;
 };
 
-class process_manager : noncopyable
+class process_manager : boost::noncopyable
 {
 public:
 	void start(std::vector<process_config>& process_info, timer_generator& timer, boost::system::error_code& ec)

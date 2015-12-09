@@ -38,18 +38,18 @@ class setup_app
 {
 public:
 
-	setup_app(application::context& context)
+	setup_app(boost::application::context& context)
 		: context_(context)
 	{
 	}
 
 	int operator()()
 	{
-		ns::shared_ptr<application::path> path
-			= context_.find<application::path>();
+		ns::shared_ptr<boost::application::path> path
+			= context_.find<boost::application::path>();
 
-		ns::shared_ptr<application::args> cmd_args
-			= context_.find<application::args>();
+		ns::shared_ptr<boost::application::args> cmd_args
+			= context_.find<boost::application::args>();
 
 		// define our simple installation schema options
 		po::options_description options("service options");
@@ -179,6 +179,6 @@ public:
 	}
 
 private:
-	application::context& context_;
+    boost::application::context& context_;
 
 };

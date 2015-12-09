@@ -31,9 +31,10 @@
 
 #pragma once
 
+#include "cinatra/cinatra.hpp"
+
 // for shared ptr
 #define BOOST_APPLICATION_FEATURE_NS_SELECT_BOOST
-
 
 #include <boost/smart_ptr.hpp>
 #include <boost/noncopyable.hpp>
@@ -96,3 +97,4 @@ ScopeExit<F> MakeScopeExit(F f) {
 #define DO_STRING_JOIN2(arg1, arg2) arg1 ## arg2
 #define SCOPE_EXIT(code) \
     auto STRING_JOIN2(scope_exit_, __LINE__) = MakeScopeExit([=](){code;})
+

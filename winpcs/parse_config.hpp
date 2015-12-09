@@ -99,10 +99,10 @@ struct process_config
 	}
 };
 
-class parse_config : noncopyable
+class parse_config : boost::noncopyable
 {
 public:
-	parse_config(application::context &context, boost::filesystem::path file, boost::system::error_code &ec)
+	parse_config(boost::application::context &context, boost::filesystem::path file, boost::system::error_code &ec)
 		: context_(context)
 	{
 		std::string json_str(_parse_jsonnet(file, ec));
@@ -147,7 +147,7 @@ private:
 		return output.get();
 	}
 
-	application::context    &context_;
+    boost::application::context    &context_;
 	boost::filesystem::path config_filename_;
 
 	std::vector<process_config> processes_;

@@ -30,9 +30,9 @@
 */
 
 #pragma once
+#include "config.hpp"
 #include "cinatra/cinatra.hpp"
 
-#include "config.hpp"
 
 class http_server : boost::noncopyable
 {

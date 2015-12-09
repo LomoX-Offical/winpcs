@@ -39,15 +39,15 @@ int main(int argc, char *argv[])
 {
 	try
 	{
-		application::context app_context;
+        boost::application::context app_context;
 		app_context.insert<args>(
-			ns::make_shared<application::args>(argc, argv));
+			ns::make_shared<boost::application::args>(argc, argv));
 
-		app_context.insert<application::path>(
-			ns::make_shared<application::path>());
+		app_context.insert<boost::application::path>(
+			ns::make_shared<boost::application::path>());
 
 
-		ns::shared_ptr<application::path> path = app_context.find<application::path>();
+		ns::shared_ptr<boost::application::path> path = app_context.find<boost::application::path>();
 		logger::instance().set_logfile(path->executable_path_name().string());
 		logger::instance().init();
 
@@ -63,17 +63,17 @@ int main(int argc, char *argv[])
 		if (vm.count("-d"))
 		{
 			service_app app(app_context);
-			return application::launch<application::common>(app, app_context);
+			return boost::application::launch<boost::application::common>(app, app_context);
 		}
 
 		if (vm.count("-b"))
 		{
 			service_app app(app_context);
-			return application::launch<application::server>(app, app_context);
+			return boost::application::launch<boost::application::server>(app, app_context);
 		}
 
 		setup_app app(app_context);
-		return application::launch<application::common>(app, app_context);
+		return boost::application::launch<boost::application::common>(app, app_context);
 	}
 	catch (boost::system::system_error& se)
 	{

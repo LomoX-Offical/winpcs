@@ -38,7 +38,6 @@
 #include <boost/filesystem/operations.hpp>
 #include <vector>
 
-using namespace boost;
 using namespace  boost::application;
 
 // setup for more detail 
@@ -74,7 +73,7 @@ setup_arg(const boost::filesystem::path &p)
 }
 
 // util class to open/close the SCM on current machine
-class windows_scm : noncopyable
+class windows_scm : boost::noncopyable
 {
 public:
 
@@ -132,7 +131,7 @@ private:
 
 // check if a given Windows Service (by name) is installed
 template <typename value_type>
-class check_windows_service_ : noncopyable
+class check_windows_service_ : boost::noncopyable
 {
 public:
 
@@ -245,7 +244,7 @@ typedef check_windows_service_<character_types::char_type> check_windows_service
 
 // uninstall a given Windows Service (by name)
 template <typename value_type>
-class uninstall_windows_service_ : noncopyable
+class uninstall_windows_service_ : boost::noncopyable
 {
 public:
 
@@ -296,7 +295,7 @@ protected:
 		windows_scm scm(SC_MANAGER_CONNECT);
 
 		// Open this service for DELETE access
-		SC_HANDLE hservice = OpenService(scm.get(), service_name_.c_str(), DELETE);
+		SC_HANDLE hservice = OpenService(scm.get(), service_name_.c_str(), 0x00010000L);
 
 		if (hservice == NULL)
 		{
@@ -344,7 +343,7 @@ typedef uninstall_windows_service_<character_types::char_type> uninstall_windows
 
 // install a given Windows Service (by name)
 template <typename value_type>
-class install_windows_service_ : noncopyable
+class install_windows_service_ : boost::noncopyable
 {
 public:
 
@@ -595,7 +594,7 @@ typedef install_windows_service_<character_types::char_type> install_windows_ser
 
 // start a given Windows Service (by name) is installed
 template <typename value_type>
-class start_windows_service_ : noncopyable
+class start_windows_service_ : boost::noncopyable
 {
 public:
 
@@ -672,7 +671,7 @@ typedef start_windows_service_<character_types::char_type> start_windows_service
 
 // check if a given Windows Service (by name) is installed
 template <typename value_type>
-class stop_windows_service_ : noncopyable
+class stop_windows_service_ : boost::noncopyable
 {
 public:
 
