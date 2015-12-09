@@ -498,6 +498,18 @@ private:
 	std::vector<std::string> exclude_names_;
 };
 
+struct process_status 
+{
+	std::string command;
+	std::string process_name;
+	std::string directory;
+	std::string environment;
+	std::string name;
+	unsigned int pid;
+	int exit_code;
+};
+
+
 class process_manager : boost::noncopyable
 {
 public:
@@ -527,6 +539,8 @@ public:
 		);
 	}
 
+	std::vector<process_status> status()
 
+private:
 	std::vector<boost::shared_ptr<exec_runner> > runners_;
 };

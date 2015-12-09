@@ -33,21 +33,27 @@
 #include "config.hpp"
 #include "cinatra/cinatra.hpp"
 
+#include "process_manager.hpp"
+
 
 class http_server : boost::noncopyable
 {
 public:
 
-	void start(boost::system::error_code &ec)
+	void start(process_manager& pm, boost::system::error_code &ec)
 	{
-		if (impl_.get() == nullptr) {
+		if (impl_.get() != nullptr) {
 			return;
 		}
 
 		impl_.reset(new cinatra::Cinatra<>);
 
-		impl_->route("/status", [](cinatra::Request& /* req */, cinatra::Response& res)
+		impl_->route("/status/pid/:pid", [this, &pm](cinatra::Request& /* req */, cinatra::Response& res, int pid)
 		{
+			if (pid == 0) 
+			{
+				pm.
+			}
 			res.end("{\"result\":0}");
 			return;
 		});
@@ -80,7 +86,12 @@ public:
 
 	void stop() 
 	{
+		if (impl_.get() == nullptr) {
+			return;
+		}
+
 		impl_->stop();
+		impl_.reset();
 	}
 
 private:

@@ -37,6 +37,7 @@
 
 #include "timer.hpp"
 #include "process_manager.hpp"
+#include "http_server.hpp"
 #include "parse_config.hpp"
 
 
@@ -97,14 +98,14 @@ public:
 
 		psmgr_.start(config_->get_processes(), timer_, ec);
 
-//         http_.start(ec);
+        http_.start(psmgr_, ec);
 
 
 		WRITE_LOG(trace) << "server wait for termination request..";
 
 		context_.find<boost::application::wait_for_termination_request>()->wait();
 
-//         http_.stop();
+        http_.stop();
 
 		psmgr_.stop();
 
@@ -141,6 +142,6 @@ private:
 	timer_generator                        timer_;
 	ns::shared_ptr<parse_config>           config_;
 	process_manager                        psmgr_;
-//     http_server                            http_;
+    http_server                            http_;
 	boost::shared_ptr<boost::thread>       http_thread_;
 };
