@@ -206,6 +206,7 @@ private:
 		CloseHandle(pi.hThread);
 
 		this->process_handle_ = pi.hProcess;
+		this->process_id_ = pi.dwProcessId;
 
 		if (wait == true) {
 			WaitForSingleObject(pi.hProcess, INFINITE);
@@ -493,6 +494,7 @@ private:
 
 	process_config info_;
 	HANDLE process_handle_;
+	unsigned long process_id_;
 	timer_generator& timer_;
 	unsigned long timer_handler_;
 	std::vector<std::string> exclude_names_;
@@ -505,8 +507,8 @@ struct process_status
 	std::string directory;
 	std::string environment;
 	std::string name;
-	unsigned int pid;
-	int exit_code;
+	unsigned long pid;
+	unsigned long exit_code;
 };
 
 
@@ -539,8 +541,28 @@ public:
 		);
 	}
 
-	std::vector<process_status> status()
+	std::vector<process_status> status(unsigned long pid)
+	{
+		std::vector<process_status> res;
+
+		std::for_each(this->runners_.begin(), this->runners_.end(), [&] (boost::shared_ptr<exec_runner>& runner)
+		{
+			process_status ps;
+			ps.command = runner->info_.command;
+			ps.directory = runner->info_.directory;
+			GetExitCodeProcess(runner->process_handle_, &ps.exit_code);
+			ps.name = runner->info_.name;
+			ps.process_name = runner->info_.process_name;
+			ps.pid = runner->process_id_;
+			ps.environment = runner->info_.environment;
+
+			res.push_back(ps);
+		});
+
+		return res;
+	}
 
 private:
 	std::vector<boost::shared_ptr<exec_runner> > runners_;
 };
+

@@ -35,6 +35,18 @@
 
 #include "process_manager.hpp"
 
+#include <cereal/cereal.hpp>
+
+#include <cereal/types/string.hpp>
+#include <cereal/types/utility.hpp>
+#include <cereal/types/memory.hpp>
+#include <cereal/types/complex.hpp>
+#include <cereal/types/base_class.hpp>
+#include <cereal/types/array.hpp>
+#include <cereal/types/vector.hpp>
+#include <cereal/types/map.hpp>
+
+#include <cereal/archives/json.hpp>
 
 class http_server : boost::noncopyable
 {
@@ -50,10 +62,10 @@ public:
 
 		impl_->route("/status/pid/:pid", [this, &pm](cinatra::Request& /* req */, cinatra::Response& res, int pid)
 		{
-			if (pid == 0) 
-			{
-				pm.runners_
-			}
+			auto status = pm.status(pid);
+
+			status
+
 			res.end("{\"result\":0}");
 			return;
 		});
