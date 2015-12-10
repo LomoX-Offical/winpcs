@@ -39,11 +39,12 @@
 
 #include "timer.hpp"
 #include "parse_config.hpp"
+#include "http_struct.hpp"
 
 struct exec_runner : boost::noncopyable
 {
 	exec_runner(process_config& info, timer_generator& timer) :
-		info_(info), timer_(timer), stop_flag_(false),
+		info_(info), timer_(timer), stop_flag_(false), exit_code_(0), process_id_(0), process_handle_(0),
 		exclude_names_({ "csrss.exe" , "lsass.exe" , "smss.exe" , "services.exe" , "svchost.exe" , "wininit.exe" , "winlogon.exe" })
 	{
 
@@ -53,6 +54,20 @@ struct exec_runner : boost::noncopyable
 	{
 		this->stop();
 	}
+
+    unsigned long exit_code()
+    {
+        return this->exit_code_;
+    }
+
+    process_config& get_info()
+    {
+        return info_;
+    }
+
+    unsigned long process_id() {
+        return process_id_;
+    }
 
 	bool init()
 	{
@@ -94,6 +109,7 @@ struct exec_runner : boost::noncopyable
 			return;
 		}
 
+        this->_flush_exit_code();
 		if (this->_check_process_running())
 		{
 			return;
@@ -102,9 +118,26 @@ struct exec_runner : boost::noncopyable
 		WRITE_LOG(trace) << "timer_run_exe pass check! >> " << this->info_.name;
 
 		bool success = this->_create_process();
+        this->_flush_exit_code();
 	}
 
 private:
+
+    void _flush_exit_code()
+    {
+        if (this->process_handle_ == 0)
+        {
+            return;
+        }
+
+        unsigned long code = 0;
+        GetExitCodeProcess(this->process_handle_, &code);
+        this->exit_code_ = code;
+        if (code != STILL_ACTIVE)
+        {
+            this->_close_handle();
+        }
+    }
 
 	void _kill_timer()
 	{
@@ -187,15 +220,13 @@ private:
 		si.dwFlags = STARTF_USESHOWWINDOW;
 		si.wShowWindow = SW_HIDE;
 
-		boost::scoped_array<char> cmd_line_char;
-		std::string exe_name;
+        boost::scoped_array<char> cmd_line_char;
 
-		exe_name = this->info_.process_name;
+        size_t cmd_line_size = this->info_.command.length() + 1;
+        cmd_line_char.reset(new char[cmd_line_size]);
+        strcpy_s(cmd_line_char.get(), cmd_line_size, this->info_.command.c_str());
 
-		cmd_line_char.reset(new char[this->info_.command.length() + 4]);
-		sprintf_s(cmd_line_char.get(), this->info_.command.length() + 3, "%s", this->info_.command.c_str());
-
-		BOOL process_created = CreateProcess(exe_name.c_str(), cmd_line_char.get(),
+		BOOL process_created = CreateProcess(this->info_.process_name.c_str(), cmd_line_char.get(),
 			NULL, NULL, FALSE, 0, NULL, this->info_.directory.c_str(), &si, &pi);
 
 		if (!process_created)
@@ -226,17 +257,8 @@ private:
 			return ret;
 		}
 
-		DWORD exit_code = 0;
-		GetExitCodeProcess(this->process_handle_, &exit_code);
-
-		if (exit_code == STILL_ACTIVE)
-		{
-			ret = true;
-			return ret;
-		}
-
-		this->_close_handle();
-		return ret;
+        ret = true;
+        return ret;
 	}
 
 	void _close_handle()
@@ -248,6 +270,7 @@ private:
 
 		CloseHandle(this->process_handle_);
 		this->process_handle_ = 0;
+        this->process_id_ = 0;
 	}
 
 	void _kill_last_processes()
@@ -495,22 +518,11 @@ private:
 	process_config info_;
 	HANDLE process_handle_;
 	unsigned long process_id_;
+    unsigned long exit_code_;
 	timer_generator& timer_;
 	unsigned long timer_handler_;
 	std::vector<std::string> exclude_names_;
 };
-
-struct process_status 
-{
-	std::string command;
-	std::string process_name;
-	std::string directory;
-	std::string environment;
-	std::string name;
-	unsigned long pid;
-	unsigned long exit_code;
-};
-
 
 class process_manager : boost::noncopyable
 {
@@ -545,16 +557,16 @@ public:
 	{
 		std::vector<process_status> res;
 
-		std::for_each(this->runners_.begin(), this->runners_.end(), [&] (boost::shared_ptr<exec_runner>& runner)
+		std::for_each(this->runners_.begin(), this->runners_.end(), [&, this] (boost::shared_ptr<exec_runner>& runner)
 		{
 			process_status ps;
-			ps.command = runner->info_.command;
-			ps.directory = runner->info_.directory;
-			GetExitCodeProcess(runner->process_handle_, &ps.exit_code);
-			ps.name = runner->info_.name;
-			ps.process_name = runner->info_.process_name;
-			ps.pid = runner->process_id_;
-			ps.environment = runner->info_.environment;
+			ps.command = runner->get_info().command;
+			ps.directory = runner->get_info().directory;
+            ps.exit_code = runner->exit_code();
+			ps.name = runner->get_info().name;
+			ps.process_name = runner->get_info().process_name;
+			ps.pid = runner->process_id();
+			ps.environment = runner->get_info().environment;
 
 			res.push_back(ps);
 		});

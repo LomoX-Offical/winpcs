@@ -32,21 +32,11 @@
 #pragma once
 #include "config.hpp"
 #include "cinatra/cinatra.hpp"
-
+#include "http_struct.hpp"
 #include "process_manager.hpp"
 
-#include <cereal/cereal.hpp>
 
-#include <cereal/types/string.hpp>
-#include <cereal/types/utility.hpp>
-#include <cereal/types/memory.hpp>
-#include <cereal/types/complex.hpp>
-#include <cereal/types/base_class.hpp>
-#include <cereal/types/array.hpp>
-#include <cereal/types/vector.hpp>
-#include <cereal/types/map.hpp>
 
-#include <cereal/archives/json.hpp>
 
 class http_server : boost::noncopyable
 {
@@ -64,9 +54,13 @@ public:
 		{
 			auto status = pm.status(pid);
 
-			status
+            std::ostringstream ss;
+            {
+                cereal::JSONOutputArchive ar(ss);
+                ar(cereal::make_nvp("status", status));
+            }
 
-			res.end("{\"result\":0}");
+			res.end(ss.str());
 			return;
 		});
 
