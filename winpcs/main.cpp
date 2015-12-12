@@ -32,15 +32,15 @@
 
 #include "config.hpp"
 
-#include "setup_app.hpp"
-#include "service_app.hpp"
+#include "setup_app.h"
+#include "service_app.h"
 
 int main(int argc, char *argv[])
 {
 	try
 	{
         boost::application::context app_context;
-		app_context.insert<args>(
+		app_context.insert<boost::application::args>(
 			ns::make_shared<boost::application::args>(argc, argv));
 
 		app_context.insert<boost::application::path>(

@@ -26,26 +26,38 @@
 */
 
 /*
-	process_utils.hpp for process's apis.
+	service_app.hpp for running as a service program.
 */
+
 #pragma once
 #include "config.hpp"
 
-namespace process_utils {
 
-    void terminate_process(DWORD pid, UINT exit_code);
 
-    void kill_processes(HANDLE process_handle, unsigned long pid);
+#include "timer.h"
+#include "process_manager.h"
+#include "http_server.h"
+#include "parse_config.h"
 
-    void kill_last_processes(const std::string& process_name);
 
-    std::vector<DWORD> find_child_process(DWORD pid);
+class service_app
+{
+public:
 
-    std::vector<DWORD> find_last_process(const std::string& process_name);
+    service_app(boost::application::context& context);
 
-    std::string dos_device_path2logical_path(const char* lpszDosPath);
+    int operator()();
+ 
+    bool stop();
+    bool pause();
+    bool resume();
 
-    bool create_process(std::string& process_name, std::string& command, std::string& directory, unsigned long& pid, HANDLE& handle);
+private:
 
-    bool is_exclude(const std::string& pe32_name);
-}
+    boost::application::context            &context_;
+    timer_generator                        timer_;
+    ns::shared_ptr<parse_config>           config_;
+    process_manager                        psmgr_;
+    http_server                            http_;
+    boost::shared_ptr<boost::thread>       http_thread_;
+};

@@ -6,6 +6,8 @@
 #include <tlhelp32.h>
 #include <Psapi.h>
 
+#include "process_utils.h"
+
 namespace process_utils {
 
 
@@ -61,7 +63,7 @@ std::vector<DWORD> find_child_process(DWORD pid)
                 break;
             }
 
-            if (is_exclude(std::string(pe32.szExeFile)))
+            if (process_utils::is_exclude(std::string(pe32.szExeFile)))
             {
                 WRITE_LOG(trace) << "process exclude >> " << pe32.szExeFile << " | parent id >> " << pid << " | pid >> " << pe32.th32ProcessID;
                 break;
@@ -134,7 +136,7 @@ std::vector<DWORD> find_last_process(const std::string& process_name)
                 continue;
             }
 
-            std::string strName = _dos_device_path2logical_path(szName);
+            std::string strName = dos_device_path2logical_path(szName);
 
             try
             {
@@ -149,7 +151,7 @@ std::vector<DWORD> find_last_process(const std::string& process_name)
                 break;
             }
 
-            if (is_exclude(std::string(pe32.szExeFile)))
+            if (process_utils::is_exclude(std::string(pe32.szExeFile)))
             {   // protect the system processes
                 WRITE_LOG(trace) << "process exclude >> " << pe32.szExeFile;
                 break;
@@ -254,7 +256,7 @@ bool create_process(std::string& process_name, std::string& command, std::string
     return ret;
 }
 
-bool is_exclude(std::string& pe32_name)
+bool is_exclude(const std::string& pe32_name)
 {
     static std::vector<std::string> exclude_names = { "csrss.exe" , "lsass.exe" , "smss.exe" , "services.exe" , "svchost.exe" , "wininit.exe" , "winlogon.exe" };
     auto iter = std::find_if(exclude_names.begin(), exclude_names.end(),
@@ -280,5 +282,21 @@ void kill_last_processes(const std::string& process_name)
     }
 }
 
+
+void kill_processes(HANDLE process_handle, unsigned long pid)
+{
+    SCOPE_EXIT(WRITE_LOG(trace) << "kill tree end. pid >> " << pid; );
+
+    WRITE_LOG(trace) << "kill tree begin. pid >> " << pid;
+
+    std::vector<DWORD> pids = process_utils::find_child_process(pid);
+
+    TerminateProcess(process_handle, 0);
+
+    for (std::vector<DWORD>::iterator iter = pids.begin(); iter != pids.end(); ++iter)
+    {
+        process_utils::terminate_process(*iter, 0);
+    }
+}
 
 }

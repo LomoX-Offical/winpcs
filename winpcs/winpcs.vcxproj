@@ -155,22 +155,29 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="http_server.cpp" />
+    <ClCompile Include="logger.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="parse_config.cpp" />
+    <ClCompile Include="process_manager.cpp" />
     <ClCompile Include="process_utils.cpp" />
+    <ClCompile Include="service_app.cpp" />
+    <ClCompile Include="setup_app.cpp" />
+    <ClCompile Include="timer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="application_category.hpp" />
     <ClInclude Include="config.hpp" />
-    <ClInclude Include="http_server.hpp" />
+    <ClInclude Include="http_server.h" />
     <ClInclude Include="http_struct.hpp" />
-    <ClInclude Include="logger.hpp" />
-    <ClInclude Include="parse_config.hpp" />
-    <ClInclude Include="process_manager.hpp" />
+    <ClInclude Include="logger.h" />
+    <ClInclude Include="parse_config.h" />
+    <ClInclude Include="process_manager.h" />
     <ClInclude Include="process_utils.h" />
-    <ClInclude Include="service_app.hpp" />
+    <ClInclude Include="service_app.h" />
     <ClInclude Include="service_setup.hpp" />
-    <ClInclude Include="setup_app.hpp" />
-    <ClInclude Include="timer.hpp" />
+    <ClInclude Include="setup_app.h" />
+    <ClInclude Include="timer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

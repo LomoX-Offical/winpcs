@@ -26,81 +26,55 @@
 */
 
 /*
-	http_server.hpp for services of http server.
+	parse_config.cpp for parsing the config file.
 */
 
-#pragma once
-#include "config.hpp"
-#include "cinatra/cinatra.hpp"
-#include "http_struct.hpp"
-#include "process_manager.hpp"
+#include "parse_config.h"
 
 
+extern "C" {
+#include "libjsonnet/libjsonnet.h"
+}
 
 
-class http_server : boost::noncopyable
+parse_config::parse_config(boost::filesystem::path file, boost::system::error_code &ec)
 {
-public:
+    std::string json_str(_parse_jsonnet(file, ec));
+    if (ec)
+    {
+        return;
+    }
 
-	void start(process_manager& pm, boost::system::error_code &ec)
-	{
-		if (impl_.get() != nullptr) {
-			return;
-		}
+    std::stringstream ss(json_str);
+    cereal::JSONInputArchive ar(ss);
+    ar(cereal::make_nvp("processes", processes_));
 
-		impl_.reset(new cinatra::Cinatra<>);
+    return;
+}
 
-		impl_->route("/status/pid/:pid", [this, &pm](cinatra::Request& /* req */, cinatra::Response& res, int pid)
-		{
-			auto status = pm.status(pid);
+parse_config::~parse_config()
+{
 
-            std::ostringstream ss;
-            {
-                cereal::JSONOutputArchive ar(ss);
-                ar(cereal::make_nvp("status", status));
-            }
+}
 
-			res.end(ss.str());
-			return;
-		});
+std::vector<process_config>& parse_config::get_processes()
+{
+    return processes_;
+}
 
-		impl_->route("/start", [](cinatra::Request& /* req */, cinatra::Response& res)
-		{
-			res.end("{\"result\":0}");
-			return;
-		});
+std::string parse_config::_parse_jsonnet(boost::filesystem::path& file, boost::system::error_code &ec)
+{
+    int error;
 
-		impl_->route("/stop", [](cinatra::Request& /* req */, cinatra::Response& res)
-		{
-			res.end("{\"result\":0}");
-			return;
-		});
+    boost::shared_ptr<JsonnetVm> vm(jsonnet_make(), boost::bind(jsonnet_destroy, _1));
+    boost::shared_array<char> output(
+        jsonnet_evaluate_file(vm.get(), file.string().c_str(), &error), boost::bind(jsonnet_realloc, vm.get(), _1, 0));
 
-		impl_->route("/restart", [](cinatra::Request& /* req */, cinatra::Response& res)
-		{
-			res.end("{\"result\":0}");
-			return;
-		});
+    if (error != 0) {
+        ec = boost::system::error_code(error,
+            make_app_cat(std::string(output.get())));
+        return std::string();
+    }
 
-		impl_->listen("http");
-
-		thread_.reset(new boost::thread([this]()
-		{
-			this->impl_->run();
-		}));
-	}
-
-	void stop() 
-	{
-		if (impl_.get() == nullptr) {
-			return;
-		}
-
-		impl_->stop();
-		impl_.reset();
-	}
-
-private:
-	boost::shared_ptr<cinatra::Cinatra<> > impl_;
-	boost::shared_ptr<boost::thread> thread_;
-};
+    return output.get();
+}

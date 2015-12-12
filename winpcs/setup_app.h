@@ -26,26 +26,20 @@
 */
 
 /*
-	process_utils.hpp for process's apis.
+	setup_app.hpp for running as a service setup program.
 */
+
 #pragma once
+
 #include "config.hpp"
 
-namespace process_utils {
+class setup_app
+{
+public:
 
-    void terminate_process(DWORD pid, UINT exit_code);
+    setup_app(boost::application::context& context);
+    int operator()();
 
-    void kill_processes(HANDLE process_handle, unsigned long pid);
-
-    void kill_last_processes(const std::string& process_name);
-
-    std::vector<DWORD> find_child_process(DWORD pid);
-
-    std::vector<DWORD> find_last_process(const std::string& process_name);
-
-    std::string dos_device_path2logical_path(const char* lpszDosPath);
-
-    bool create_process(std::string& process_name, std::string& command, std::string& directory, unsigned long& pid, HANDLE& handle);
-
-    bool is_exclude(const std::string& pe32_name);
-}
+private:
+    boost::application::context& context_;
+};

@@ -46,10 +46,6 @@
 
 #include <cereal/archives/json.hpp>
 
-extern "C" {
-#include "libjsonnet/libjsonnet.h"
-}
-
 #pragma comment(lib, "libjsonnet.lib")
 
 
@@ -102,54 +98,18 @@ struct process_config
 class parse_config : boost::noncopyable
 {
 public:
-	parse_config(boost::application::context &context, boost::filesystem::path file, boost::system::error_code &ec)
-		: context_(context)
-	{
-		std::string json_str(_parse_jsonnet(file, ec));
-		if (ec)
-		{
-			return;
-		}
-			
-		std::stringstream ss(json_str);
-		cereal::JSONInputArchive ar(ss);
-		ar(cereal::make_nvp("processes", processes_));
+    parse_config(boost::filesystem::path file, boost::system::error_code &ec);
 
-		return;
-	}
+    ~parse_config();
 
-	~parse_config()
-	{
+    std::vector<process_config>& get_processes();
 
-	}
-
-	std::vector<process_config>& get_processes()
-	{
-		return processes_;
-	}
 
 private:
 
-	std::string _parse_jsonnet(boost::filesystem::path& file, boost::system::error_code &ec)
-	{
-		int error;
+    std::string _parse_jsonnet(boost::filesystem::path& file, boost::system::error_code &ec);
 
-		boost::shared_ptr<JsonnetVm> vm(jsonnet_make(), boost::bind(jsonnet_destroy, _1));
-		boost::shared_array<char> output(
-			jsonnet_evaluate_file(vm.get(), file.string().c_str(), &error), boost::bind(jsonnet_realloc, vm.get(), _1, 0));
-
-		if (error != 0) {
-			ec = boost::system::error_code(error,
-				make_app_cat(std::string(output.get())));
-			return std::string();
-		}
-
-		return output.get();
-	}
-
-    boost::application::context    &context_;
 	boost::filesystem::path config_filename_;
-
 	std::vector<process_config> processes_;
 
 };

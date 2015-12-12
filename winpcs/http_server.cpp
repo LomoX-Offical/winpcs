@@ -26,26 +26,65 @@
 */
 
 /*
-	process_utils.hpp for process's apis.
+	http_server.cpp for services of http server.
 */
-#pragma once
-#include "config.hpp"
 
-namespace process_utils {
+#include "http_server.h"
 
-    void terminate_process(DWORD pid, UINT exit_code);
+void http_server::start(process_manager& pm, boost::system::error_code &ec)
+{
+    if (impl_.get() != nullptr) {
+        return;
+    }
 
-    void kill_processes(HANDLE process_handle, unsigned long pid);
+    impl_.reset(new cinatra::Cinatra<>);
 
-    void kill_last_processes(const std::string& process_name);
+    impl_->route("/status/pid/:pid", [this, &pm](cinatra::Request& /* req */, cinatra::Response& res, int pid)
+    {
+        auto status = pm.status(pid);
 
-    std::vector<DWORD> find_child_process(DWORD pid);
+        std::ostringstream ss;
+        {
+            cereal::JSONOutputArchive ar(ss);
+            ar(cereal::make_nvp("status", status));
+        }
 
-    std::vector<DWORD> find_last_process(const std::string& process_name);
+        res.end(ss.str());
+        return;
+    });
 
-    std::string dos_device_path2logical_path(const char* lpszDosPath);
+    impl_->route("/start", [](cinatra::Request& /* req */, cinatra::Response& res)
+    {
+        res.end("{\"result\":0}");
+        return;
+    });
 
-    bool create_process(std::string& process_name, std::string& command, std::string& directory, unsigned long& pid, HANDLE& handle);
+    impl_->route("/stop", [](cinatra::Request& /* req */, cinatra::Response& res)
+    {
+        res.end("{\"result\":0}");
+        return;
+    });
 
-    bool is_exclude(const std::string& pe32_name);
+    impl_->route("/restart", [](cinatra::Request& /* req */, cinatra::Response& res)
+    {
+        res.end("{\"result\":0}");
+        return;
+    });
+
+    impl_->listen("http");
+
+    thread_.reset(new boost::thread([this]()
+    {
+        this->impl_->run();
+    }));
+}
+
+void http_server::stop()
+{
+    if (impl_.get() == nullptr) {
+        return;
+    }
+
+    impl_->stop();
+    impl_.reset();
 }

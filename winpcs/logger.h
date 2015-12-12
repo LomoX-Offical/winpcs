@@ -26,7 +26,7 @@
 */
 
 /*
-	logger.cpp for log file
+	logger.h for log file
 */
 
 #pragma once  
@@ -96,122 +96,30 @@ private:
 
 
 public:
+    static logger& instance()
+    {
+        static logger ins;
+        return ins;
+    }
 
-	~logger(void)
-	{
-	}
+    logger& stop();
+    logger& start();
+    logger& init();
 
-	static logger& instance()
-	{
-		static logger ins;
-		return ins;
-	}
-
-	static src::severity_logger< severity_level >& log_filter()
-	{
-		static src::severity_logger< severity_level > slg;
-		return slg;
-	}
-
-	logger& init()
-	{
-		typedef sinks::debug_output_backend backend_t;
-		auto pDebugBackend = boost::make_shared< backend_t >();
-
-		auto pDebugSink = boost::make_shared< sinks::synchronous_sink< backend_t > >(pDebugBackend);
-		pDebugSink->set_filter(expr::attr<severity_level>("Severity") >= trace);
-		pDebugSink->set_formatter(
-			expr::stream
-			<< "[" << expr::attr<UINT>("RecordID")
-			<< "][" << expr::format_date_time(_timestamp, "%Y-%m-%d %H:%M:%S.%f")
-			<< "][" << _severity
-			<< "]" << expr::message
-			<< std::endl);
-		logging::core::get()->add_sink(pDebugSink);
-
-		sink_ = logging::add_file_log (
-			keywords::open_mode = std::ios::app, // append write
-			keywords::file_name = file_name_ + "%Y-%m-%d.log",
-			keywords::rotation_size = rotation_size_,
-			keywords::time_based_rotation = sinks::file::rotation_at_time_point(0, 0, 0),
-			keywords::min_free_space = min_free_space_,
-
-			keywords::format = (
-				expr::stream
-				<< "[" << expr::attr<UINT>("RecordID")
-				<< "][" << expr::format_date_time(_timestamp, "%Y-%m-%d %H:%M:%S.%f")
-				<< "][" << _severity
-				<< "]" << expr::message)
-		);
-
-		sink_->locked_backend()->auto_flush(auto_flush_);
-
-		logging::add_common_attributes();
-
-		attrs::counter<UINT> RecordID(1);
-		logging::core::get()->add_global_attribute("RecordID", RecordID);
-
-		this->set_filter_trace();
-
-		return *this;
-	}
+    logger& set_min_free_space(const size_t size);
+    logger& set_rotation_size(const size_t size);
+    logger& set_logfile(const std::string& log_file);
+    static src::severity_logger< severity_level >& log_filter();
 
 
-	logger& start()
-	{
-		logging::core::get()->set_logging_enabled(true);
-		return *this;
-	}
-
-	logger& stop()
-	{
-		logging::core::get()->set_logging_enabled(false);
-		return *this;
-	}
+    template <int level>
+    void set_filter();
+    logger& set_filter_warning();
+    logger& set_filter_error();
+    logger& set_filter_trace();
 
 
-	logger& set_filter_trace()
-	{
-		set_filter<trace>();
-		return *this;
-	}
 
-	logger& set_filter_warning()
-	{
-		set_filter<warning>();
-		return *this;
-	}
-
-	logger& set_filter_error()
-	{
-		set_filter<error>();
-		return *this;
-	}
-
-	template <int level>
-	void set_filter() 
-	{
-		sink_->set_filter(expr::attr<severity_level>("Severity") >= level);
-	}
-
-
-	logger& set_logfile(const std::string& log_file)
-	{
-		file_name_ = log_file;
-		return *this;
-	}
-
-	logger& set_min_free_space(const size_t size)
-	{
-		min_free_space_ = size * 1024 * 1024;
-		return *this;
-	}
-
-	logger& set_rotation_size(const size_t size)
-	{
-		rotation_size_ = size * 1024 * 1024;
-		return *this;
-	}
 
 protected:
 	size_t min_free_space_;

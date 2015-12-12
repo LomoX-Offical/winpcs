@@ -26,26 +26,74 @@
 */
 
 /*
-	process_utils.hpp for process's apis.
+	process_mgr.hpp for process's manage.
 */
 #pragma once
+
 #include "config.hpp"
 
-namespace process_utils {
+#include <Windows.h>
 
-    void terminate_process(DWORD pid, UINT exit_code);
+#include "process_utils.h"
+#include "timer.h"
+#include "parse_config.h"
+#include "http_struct.hpp"
 
-    void kill_processes(HANDLE process_handle, unsigned long pid);
 
-    void kill_last_processes(const std::string& process_name);
+struct exec_runner : boost::noncopyable
+{
+    exec_runner(process_config& info, timer_generator& timer) :
+        info_(info), timer_(timer), stop_flag_(false),
+        exit_code_(0), process_id_(0), process_handle_(0)
+    {
 
-    std::vector<DWORD> find_child_process(DWORD pid);
+    }
 
-    std::vector<DWORD> find_last_process(const std::string& process_name);
+    ~exec_runner(void);
 
-    std::string dos_device_path2logical_path(const char* lpszDosPath);
+    bool init();
+    bool start();
+    void stop();
 
-    bool create_process(std::string& process_name, std::string& command, std::string& directory, unsigned long& pid, HANDLE& handle);
+    void timer_delay();
+    void timer_run_exe();
 
-    bool is_exclude(const std::string& pe32_name);
-}
+    unsigned long exit_code();
+    process_config& get_info();
+    unsigned long process_id();
+
+private:
+
+    void _flush_exit_code();
+    void _stop_process();
+    bool _check_process_running();
+    void _close_handle();
+    void _kill_process();
+
+    void _kill_timer();
+    bool _check_stop_flag();
+    void _set_stop(bool flag);
+
+
+    bool stop_flag_;
+
+    process_config info_;
+    HANDLE process_handle_;
+    unsigned long process_id_;
+    unsigned long exit_code_;
+    timer_generator& timer_;
+    unsigned long timer_handler_;
+};
+
+class process_manager : boost::noncopyable
+{
+public:
+    void start(std::vector<process_config>& process_info, 
+        timer_generator& timer, boost::system::error_code& ec);
+    void stop();
+    std::vector<process_status> status(unsigned long pid);
+
+private:
+	std::vector<boost::shared_ptr<exec_runner> > runners_;
+};
+

@@ -21,6 +21,27 @@
     <ClCompile Include="process_utils.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="http_server.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="logger.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="parse_config.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="process_manager.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="service_app.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="setup_app.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="timer.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="service_setup.hpp">
@@ -29,35 +50,35 @@
     <ClInclude Include="config.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="logger.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="service_app.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="setup_app.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="timer.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="parse_config.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="application_category.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="process_manager.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="http_server.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="http_struct.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="process_utils.h">
-      <Filter>源文件</Filter>
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="http_server.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="logger.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="parse_config.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="process_manager.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="service_app.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="setup_app.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="timer.h">
+      <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -26,26 +26,23 @@
 */
 
 /*
-	process_utils.hpp for process's apis.
+	http_server.h for services of http server.
 */
+
 #pragma once
 #include "config.hpp"
+#include "cinatra/cinatra.hpp"
+#include "http_struct.hpp"
+#include "process_manager.h"
 
-namespace process_utils {
 
-    void terminate_process(DWORD pid, UINT exit_code);
+class http_server : boost::noncopyable
+{
+public:
+    void start(process_manager& pm, boost::system::error_code &ec);
+    void stop();
 
-    void kill_processes(HANDLE process_handle, unsigned long pid);
-
-    void kill_last_processes(const std::string& process_name);
-
-    std::vector<DWORD> find_child_process(DWORD pid);
-
-    std::vector<DWORD> find_last_process(const std::string& process_name);
-
-    std::string dos_device_path2logical_path(const char* lpszDosPath);
-
-    bool create_process(std::string& process_name, std::string& command, std::string& directory, unsigned long& pid, HANDLE& handle);
-
-    bool is_exclude(const std::string& pe32_name);
-}
+private:
+	boost::shared_ptr<cinatra::Cinatra<> > impl_;
+	boost::shared_ptr<boost::thread> thread_;
+};
