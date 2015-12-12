@@ -156,6 +156,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="process_utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="application_category.hpp" />
@@ -165,6 +166,7 @@
     <ClInclude Include="logger.hpp" />
     <ClInclude Include="parse_config.hpp" />
     <ClInclude Include="process_manager.hpp" />
+    <ClInclude Include="process_utils.h" />
     <ClInclude Include="service_app.hpp" />
     <ClInclude Include="service_setup.hpp" />
     <ClInclude Include="setup_app.hpp" />

@@ -33,19 +33,18 @@
 #include "config.hpp"
 
 #include <Windows.h>
-#include <VersionHelpers.h>
-#include <tlhelp32.h>
-#include <Psapi.h>
 
+#include "process_utils.h"
 #include "timer.hpp"
 #include "parse_config.hpp"
 #include "http_struct.hpp"
 
+
 struct exec_runner : boost::noncopyable
 {
 	exec_runner(process_config& info, timer_generator& timer) :
-		info_(info), timer_(timer), stop_flag_(false), exit_code_(0), process_id_(0), process_handle_(0),
-		exclude_names_({ "csrss.exe" , "lsass.exe" , "smss.exe" , "services.exe" , "svchost.exe" , "wininit.exe" , "winlogon.exe" })
+		info_(info), timer_(timer), stop_flag_(false), 
+        exit_code_(0), process_id_(0), process_handle_(0)
 	{
 
 	}
@@ -71,7 +70,7 @@ struct exec_runner : boost::noncopyable
 
 	bool init()
 	{
-		this->_kill_last_processes();
+        process_utils::kill_last_processes(this->info_.process_name);
 		return true;
 	}
 
@@ -117,7 +116,14 @@ struct exec_runner : boost::noncopyable
 
 		WRITE_LOG(trace) << "timer_run_exe pass check! >> " << this->info_.name;
 
-		bool success = this->_create_process();
+
+		bool success = process_utils::create_process(
+            this->info_.process_name, 
+            this->info_.command,
+            this->info_.directory,
+            this->process_id_,
+            this->process_handle_);
+
         this->_flush_exit_code();
 	}
 
@@ -184,67 +190,26 @@ private:
 	}
 
 
-	void _kill_processes()
-	{
-		SCOPE_EXIT( WRITE_LOG(trace) << "kill tree end >> " << this->info_.name; );
+    void _kill_processes()
+    {
+        SCOPE_EXIT(WRITE_LOG(trace) << "kill tree end >> " << this->info_.name; );
 
-		WRITE_LOG(trace) << "kill tree begin >> " << this->info_.name;
+        WRITE_LOG(trace) << "kill tree begin >> " << this->info_.name;
 
-		if (this->process_handle_ != 0)
-		{
-			DWORD pid = ::GetProcessId(this->process_handle_);
-			std::vector<DWORD> pids = this->_find_child_process(pid);
+        if (this->process_handle_ != 0)
+        {
+            DWORD pid = this->process_id_;
+            std::vector<DWORD> pids = process_utils::find_child_process(pid);
 
-			TerminateProcess(this->process_handle_, 0);
-			this->_close_handle();
+            TerminateProcess(this->process_handle_, 0);
+            this->_close_handle();
 
-			for (std::vector<DWORD>::iterator iter = pids.begin(); iter != pids.end(); ++iter)
-			{
-				this->_terminate_process(*iter, 0);
-			}
-		}
-	}
-
-	bool _create_process(bool wait = false)
-	{
-		auto ret = false;
-
-		SCOPE_EXIT(WRITE_LOG(error) << "create process >> " << this->info_.name << " | result >> " << ret;);
-
-		STARTUPINFO si = { 0 };
-		PROCESS_INFORMATION pi = { 0 };
-
-		ZeroMemory(&si, sizeof(si));
-		ZeroMemory(&pi, sizeof(pi));
-		si.cb = sizeof(STARTUPINFO);
-		si.dwFlags = STARTF_USESHOWWINDOW;
-		si.wShowWindow = SW_HIDE;
-
-        boost::scoped_array<char> cmd_line_char;
-
-        size_t cmd_line_size = this->info_.command.length() + 1;
-        cmd_line_char.reset(new char[cmd_line_size]);
-        strcpy_s(cmd_line_char.get(), cmd_line_size, this->info_.command.c_str());
-
-		BOOL process_created = CreateProcess(this->info_.process_name.c_str(), cmd_line_char.get(),
-			NULL, NULL, FALSE, 0, NULL, this->info_.directory.c_str(), &si, &pi);
-
-		if (!process_created)
-			return ret;
-
-		ret = true;
-
-		CloseHandle(pi.hThread);
-
-		this->process_handle_ = pi.hProcess;
-		this->process_id_ = pi.dwProcessId;
-
-		if (wait == true) {
-			WaitForSingleObject(pi.hProcess, INFINITE);
-		}
-
-		return ret;
-	}
+            for (std::vector<DWORD>::iterator iter = pids.begin(); iter != pids.end(); ++iter)
+            {
+                process_utils::terminate_process(*iter, 0);
+            }
+        }
+    }
 
 	bool _check_process_running()
 	{
@@ -273,17 +238,6 @@ private:
         this->process_id_ = 0;
 	}
 
-	void _kill_last_processes()
-	{
-		SCOPE_EXIT(WRITE_LOG(error) << "kill last processes finished >> " << this->info_.name; );
-
-		std::vector<DWORD> pids = this->_find_last_process();
-		for (std::vector<DWORD>::iterator iter = pids.begin(); iter != pids.end(); ++iter)
-		{
-			this->_terminate_process(*iter, 0);
-		}
-	}
-
 
 	void _kill_process()
 	{
@@ -295,222 +249,6 @@ private:
 		}
 	}
 
-	void _terminate_process(DWORD pid, UINT exit_code)
-	{
-		SCOPE_EXIT(WRITE_LOG(trace) << "kill last processes [" << this->info_.name << "] finished.");
-
-		HANDLE process_handle = ::OpenProcess(PROCESS_TERMINATE, FALSE, pid);
-		if (process_handle == NULL)
-		{
-			return;
-		}
-
-		WRITE_LOG(trace) << "terminate process >>" << this->info_.name << " finished.";
-		TerminateProcess(process_handle, exit_code);
-		CloseHandle(process_handle);
-	}
-
-
-	std::vector<DWORD> _find_child_process(DWORD pid)
-	{
-		SCOPE_EXIT( WRITE_LOG(trace) << "find child processes end >> " << this->info_.name; );
-
-		std::vector<DWORD> pids;
-		WRITE_LOG(trace) << "find child processes begin >> " <<  this->info_.name;
-
-		// Take a snapshot of all processes in the system.
-		HANDLE process_snap = ::CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-		if (process_snap == INVALID_HANDLE_VALUE)
-		{
-			WRITE_LOG(error) << "CreateToolhelp32Snapshot failed >> " << this->info_.name << "| error :" << GetLastError();
-			return pids;
-		}
-
-		PROCESSENTRY32 pe32 = { 0 };
-		pe32.dwSize = sizeof(PROCESSENTRY32);
-
-		BOOL success = ::Process32First(process_snap, &pe32);
-
-		if (success == FALSE)
-		{
-			WRITE_LOG(error) << "Process32First failed >> " << this->info_.name << "| error :" << GetLastError();
-			return pids;
-		}
-
-
-		while (success)
-		{
-			do
-			{
-				if (pe32.th32ParentProcessID != pid)
-				{
-					break;
-				}
-
-				std::string pe32_name(pe32.szExeFile);
-				std::vector<std::string>::iterator iter =
-					std::find_if(this->exclude_names_.begin(), this->exclude_names_.end(),
-						boost::bind(boost::contains<std::string, std::string>, pe32_name, _1));
-
-				if (iter != this->exclude_names_.end())
-				{   // protect the system processes
-					WRITE_LOG(trace) << "process exclude >> " << iter->c_str() << " | parent id >> " << pid << " | pid >> " << pe32.th32ProcessID << " | name >> " << this->info_.name;
-					break;
-				}
-
-				pids.push_back(pe32.th32ProcessID);
-				WRITE_LOG(trace) << "find child >> " << pe32.szExeFile << " | pid >> " << pe32.th32ProcessID << " | name >> " << this->info_.name;
-			} while (false);
-
-			success = ::Process32Next(process_snap, &pe32);
-		}
-		::CloseHandle(process_snap);
-		return pids;
-	}
-
-
-
-	std::vector<DWORD> _find_last_process()
-	{
-		SCOPE_EXIT(WRITE_LOG(trace) << "find last processes end >>" << this->info_.name; );
-
-		WRITE_LOG(trace) << "find last processes begin >> " << this->info_.name;
-
-		std::vector<DWORD> pids;
-
-		// Take a snapshot of all processes in the system.
-		HANDLE process_snap = ::CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-		if (process_snap == INVALID_HANDLE_VALUE)
-		{
-			WRITE_LOG(error) << "CreateToolhelp32Snapshot failed!error >> [" << GetLastError() << "], process: >>" << this->info_.name;
-			return pids;
-		}
-
-		PROCESSENTRY32 pe32 = { 0 };
-		pe32.dwSize = sizeof(PROCESSENTRY32);
-
-		BOOL success = ::Process32First(process_snap, &pe32);
-
-		if (success == FALSE)
-		{
-			WRITE_LOG(error) << "Process32First failed!error >> [" << GetLastError() << "], process: >>" << this->info_.name;
-			return pids;
-		}
-
-		while (success)
-		{
-			do
-			{
-				using boost::filesystem::equivalent;
-				using boost::filesystem::path;
-
-				TCHAR szName[2048] = { 0 };
-				DWORD nSize = 2048;
-				DWORD dwDesiredAccess = PROCESS_QUERY_INFORMATION;
-
-				if (IsWindowsVistaOrGreater())
-				{
-					dwDesiredAccess = PROCESS_QUERY_LIMITED_INFORMATION;
-				}
-
-				HANDLE hProcess = OpenProcess(dwDesiredAccess, FALSE, pe32.th32ProcessID);
-				if (!hProcess)
-				{
-					continue;
-				}
-
-				DWORD ret = ::GetProcessImageFileName(hProcess, szName, nSize);
-				CloseHandle(hProcess);
-				if (ret == FALSE)
-				{
-					continue;
-				}
-
-				std::string strName = _dos_device_path2logical_path(szName);
-
-				try
-				{
-					if (equivalent(path(this->info_.process_name.c_str()), path(strName.c_str())) == false)
-					{
-						break;
-					}
-				}
-				catch (...)
-				{
-					// this->exe_name_.c_str() file has not fould
-					break;
-				}
-
-				std::string pe32_name(pe32.szExeFile);
-				auto iter = std::find_if(exclude_names_.begin(), exclude_names_.end(),
-						boost::bind(boost::contains<std::string, std::string>, pe32_name, _1));
-
-				if (iter != exclude_names_.end())
-				{   // protect the system processes
-					WRITE_LOG(trace) << "process exclude >> " << iter->c_str() << " | process name >> " << this->info_.process_name << " | pid >> " << pe32.th32ProcessID << " | name >> " << this->info_.name;
-					break;
-				}
-
-				pids.push_back(pe32.th32ProcessID);
-
-			} while (false);
-
-			success = ::Process32Next(process_snap, &pe32);
-		}
-		::CloseHandle(process_snap);
-
-		return pids;
-	}
-
-
-	std::string _dos_device_path2logical_path(const TCHAR* lpszDosPath)
-	{
-		std::string strResult;
-
-		// Translate path with device name to drive letters.
-
-		char szTemp[MAX_PATH];
-		szTemp[0] = '\0';
-
-		if (lpszDosPath == NULL || !GetLogicalDriveStrings(_countof(szTemp) - 1, szTemp))
-		{
-			return strResult;
-		}
-
-		char szName[MAX_PATH];
-		char szDrive[3] = " :";
-		BOOL  bFound = FALSE;
-		char* p = szTemp;
-
-		do {
-			// Copy the drive letter to the template string
-			*szDrive = *p;
-
-			// Look up each device name
-			if (QueryDosDevice(szDrive, szName, _countof(szName)))
-			{
-				UINT uNameLen = (UINT)strlen(szName);
-				if (uNameLen < MAX_PATH)
-				{
-
-					bFound = _strnicmp(lpszDosPath, szName, uNameLen) == 0;
-					if (bFound) {
-
-						// Reconstruct pszFilename using szTemp
-						// Replace device path with DOS path
-						char szTempFile[MAX_PATH];
-						sprintf_s(szTempFile, "%s%s", szDrive, lpszDosPath + uNameLen);
-						strResult = szTempFile;
-					}
-				}
-			}
-
-			// Go to the next NULL character.
-			while (*p++);
-		} while (!bFound && *p); // end of string
-
-		return strResult;
-	}
 
 
 	bool stop_flag_;
@@ -521,7 +259,6 @@ private:
     unsigned long exit_code_;
 	timer_generator& timer_;
 	unsigned long timer_handler_;
-	std::vector<std::string> exclude_names_;
 };
 
 class process_manager : boost::noncopyable

@@ -18,6 +18,9 @@
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="process_utils.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="service_setup.hpp">
@@ -52,6 +55,9 @@
     </ClInclude>
     <ClInclude Include="http_struct.hpp">
       <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="process_utils.h">
+      <Filter>源文件</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
