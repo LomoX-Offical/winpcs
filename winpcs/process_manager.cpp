@@ -245,7 +245,7 @@ std::vector<process_status> process_manager::status(unsigned long pid)
 {
     std::vector<process_status> res;
 
-    std::for_each(this->runners_.begin(), this->runners_.end(), [&, this](boost::shared_ptr<exec_runner>& runner)
+    std::for_each(this->runners_.begin(), this->runners_.end(), [&](boost::shared_ptr<exec_runner>& runner)
     {
         process_status ps;
         ps.command = runner->get_info().command;

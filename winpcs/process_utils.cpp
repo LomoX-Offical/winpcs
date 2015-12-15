@@ -240,8 +240,21 @@ bool create_process(std::string& process_name, std::string& command, std::string
     cmd_line_char.reset(new char[cmd_line_size]);
     strcpy_s(cmd_line_char.get(), cmd_line_size, command.c_str());
 
-    BOOL process_created = CreateProcess(process_name.c_str(), cmd_line_char.get(),
-        NULL, NULL, FALSE, 0, NULL, directory.c_str(), &si, &pi);
+	auto get_dir = [&directory]() -> const char * {
+		if (!directory.empty())
+		{
+			return directory.c_str();
+		}
+		return NULL;
+	};
+		
+
+	auto get_env = [&]() -> void * {
+		return NULL;
+	};
+
+	BOOL process_created = CreateProcess(process_name.c_str(), cmd_line_char.get(),
+        NULL, NULL, FALSE, 0, get_env(), get_dir(), &si, &pi);
 
     if (!process_created)
         return ret;
